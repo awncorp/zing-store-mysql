@@ -41,7 +41,7 @@ jobs:
     - name: Critiquing Project
       run: sudo perlbrew exec --with perl-5.30.0 perlcritic lib t
     - name: Testing Project
-      run: sudo perlbrew exec --with perl-5.30.0 prove -Ilib -r t
+      run: perlbrew exec --with perl-5.30.0 prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
         TESTDB_INITIAL: mysql
@@ -85,7 +85,7 @@ jobs:
     - name: Critiquing Project
       run: sudo perlbrew exec --with perl-5.28.0 perlcritic lib t
     - name: Testing Project
-      run: sudo perlbrew exec --with perl-5.28.0 prove -Ilib -r t
+      run: perlbrew exec --with perl-5.28.0 prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
         TESTDB_INITIAL: mysql
@@ -129,7 +129,7 @@ jobs:
     - name: Critiquing Project
       run: sudo perlbrew exec --with perl-5.26.0 perlcritic lib t
     - name: Testing Project
-      run: sudo perlbrew exec --with perl-5.26.0 prove -Ilib -r t
+      run: perlbrew exec --with perl-5.26.0 prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
         TESTDB_INITIAL: mysql
@@ -173,7 +173,7 @@ jobs:
     - name: Critiquing Project
       run: sudo perlbrew exec --with perl-5.24.0 perlcritic lib t
     - name: Testing Project
-      run: sudo perlbrew exec --with perl-5.24.0 prove -Ilib -r t
+      run: perlbrew exec --with perl-5.24.0 prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
         TESTDB_INITIAL: mysql
@@ -217,7 +217,7 @@ jobs:
     - name: Critiquing Project
       run: sudo perlbrew exec --with perl-5.22.0 perlcritic lib t
     - name: Testing Project
-      run: sudo perlbrew exec --with perl-5.22.0 prove -Ilib -r t
+      run: perlbrew exec --with perl-5.22.0 prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
         TESTDB_INITIAL: mysql
@@ -261,7 +261,7 @@ jobs:
     - name: Critiquing Project
       run: sudo perlbrew exec --with perl-5.18.2 perlcritic lib t
     - name: Testing Project
-      run: sudo perlbrew exec --with perl-5.18.2 prove -Ilib -r t
+      run: perlbrew exec --with perl-5.18.2 prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
         TESTDB_INITIAL: mysql
