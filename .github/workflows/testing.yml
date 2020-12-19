@@ -10,6 +10,19 @@ on:
 jobs:
   Perl-0000:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: mysql
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
 
     steps:
     - uses: actions/checkout@v1
@@ -33,3 +46,8 @@ jobs:
       run: prove -Ilib -r t
       env:
         HARNESS_OPTIONS: j9
+        TESTDB_INITIAL: mysql
+        TESTDB_DATABASE: zing
+        TESTDB_HOSTNAME: 127.0.0.1
+        TESTDB_HOSTPORT: 3306
+        TESTDB_USERNAME: root
