@@ -44,6 +44,16 @@ fun new_client($self) {
   );
 }
 
+has meta => (
+  is => 'ro',
+  isa => 'Str',
+  new => 1,
+);
+
+fun new_meta($self) {
+  require Zing::ID; Zing::ID->new->string
+}
+
 has table => (
   is => 'ro',
   isa => 'Str',
@@ -63,13 +73,14 @@ fun new_encoder($self) {
 fun BUILD($self) {
   my $client = $self->client;
   my $table = $self->table;
-  do {
+  local $@; eval {
     $client->do(qq{
       create table if not exists `$table` (
         `id` int not null auto_increment primary key,
         `key` varchar(255) not null,
         `value` mediumtext not null,
-        `index` int default 0
+        `index` int default 0,
+        `meta` varchar(255) null
       ) engine = innodb
     });
   }
@@ -92,6 +103,8 @@ fun DESTROY($self) {
 }
 
 # METHODS
+
+my $retries = 10;
 
 method drop(Str $key) {
   my $table = $self->table;
@@ -118,16 +131,35 @@ method keys(Str $query) {
 method lpull(Str $key) {
   my $table = $self->table;
   my $client = $self->client;
+  for my $attempt (1..$retries) {
+    local $@; eval {
+      my $sth = $client->prepare(
+        qq{
+          update `$table` set `meta` = ? where `id` = (
+            select `s1`.`id` from (
+              select `s0`.`id` from `$table` `s0`
+              where `s0`.`key` = ? and `s0`.`meta` is null
+              order by `s0`.`index` asc limit 1
+            ) as `s1`
+          )
+        }
+      );
+      $sth->execute($self->meta, $key);
+    };
+    if ($@) {
+      die $@ if $attempt == $retries;
+    }
+    else {
+      last;
+    }
+  }
   my $data = $client->selectrow_arrayref(
     qq{
-      select `t0`.`id`, `t0`.`value`
-      from `$table` `t0` where `t0`.`id` = (
-        select min(`t1`.`id`)
-        from `$table` `t1` where `t1`.`key` = ?
-      )
+      select `id`, `value`
+      from `$table` where `meta` = ? and `key` = ? order by `index` asc limit 1
     },
     {},
-    $key,
+    $self->meta, $key,
   );
   if ($data) {
     my $sth = $client->prepare(
@@ -144,12 +176,22 @@ method lpush(Str $key, HashRef $val) {
   my $sth = $client->prepare(
     qq{
       insert into `$table` (`key`, `value`, `index`) values (?, ?, (
-        select ifnull(min(`me`.`index`), 0) - 1
-        from `$table` `me` where `me`.`key` = ?
+        select ifnull(min(`s0`.`index`), 0) - 1
+        from `$table` `s0` where `s0`.`key` = ?
       ))
     }
   );
-  $sth->execute($key, $self->encode($val), $key);
+  for my $attempt (1..$retries) {
+    local $@; eval {
+      $sth->execute($key, $self->encode($val), $key);
+    };
+    if ($@) {
+      die $@ if $attempt == $retries;
+    }
+    else {
+      last;
+    }
+  }
   return $sth->rows;
 }
 
@@ -175,16 +217,35 @@ method recv(Str $key) {
 method rpull(Str $key) {
   my $table = $self->table;
   my $client = $self->client;
+  for my $attempt (1..$retries) {
+    local $@; eval {
+      my $sth = $client->prepare(
+        qq{
+          update `$table` set `meta` = ? where `id` = (
+            select `s1`.`id` from (
+              select `s0`.`id` from `$table` `s0`
+              where `s0`.`key` = ? and `s0`.`meta` is null
+              order by `s0`.`index` desc limit 1
+            ) as `s1`
+          )
+        }
+      );
+      $sth->execute($self->meta, $key);
+    };
+    if ($@) {
+      die $@ if $attempt == $retries;
+    }
+    else {
+      last;
+    }
+  }
   my $data = $client->selectrow_arrayref(
     qq{
-      select `t0`.`id`, `t0`.`value`
-      from `$table` `t0` where `t0`.`id` = (
-        select max(`t1`.`id`)
-        from `$table` `t1` where `t1`.`key` = ?
-      )
+      select `id`, `value`
+      from `$table` where `meta` = ? and `key` = ? order by `index` desc limit 1
     },
     {},
-    $key,
+    $self->meta, $key,
   );
   if ($data) {
     my $sth = $client->prepare(
@@ -201,12 +262,22 @@ method rpush(Str $key, HashRef $val) {
   my $sth = $client->prepare(
     qq{
       insert into `$table` (`key`, `value`, `index`) values (?, ?, (
-        select ifnull(max(`me`.`index`), 0) + 1
-        from `$table` `me` where `me`.`key` = ?
+        select ifnull(max(`s0`.`index`), 0) + 1
+        from `$table` `s0` where `s0`.`key` = ?
       ))
     }
   );
-  $sth->execute($key, $self->encode($val), $key);
+  for my $attempt (1..$retries) {
+    local $@; eval {
+      $sth->execute($key, $self->encode($val), $key);
+    };
+    if ($@) {
+      die $@ if $attempt == $retries;
+    }
+    else {
+      last;
+    }
+  }
   return $sth->rows;
 }
 
